@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "57696303522",
+    "project_id": "misafir-app",
+    "storage_bucket": "misafir-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:57696303522:android:19410756814378a1949afb",
+        "android_client_info": {
+          "package_name": "com.resulyag.misafirapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "57696303522-rstu9pqjpm9j775a53shef2j8v8ufqo2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBbS29_ZyNorYUWWWlRkuGNdtU9PsAs84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "57696303522-rstu9pqjpm9j775a53shef2j8v8ufqo2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
