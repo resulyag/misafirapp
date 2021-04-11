@@ -2,14 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.resulyag.misafirapp">
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/misafir_icon"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/misafir_icon_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <!--   android:icon="@mipmap/ic_launcher"  -->
+        <!--   android:roundIcon="@mipmap/ic_launcher_round"  -->
 
         <meta-data
             android:name="firebase_messaging_auto_init_enabled"
@@ -27,7 +35,8 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
+        <service android:name="org.eclipse.paho.android.service.MqttService">
+        </service>
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
