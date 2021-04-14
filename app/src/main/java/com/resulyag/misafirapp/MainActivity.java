@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView txt_misafirdurum;
     private Button btn_open;
+    private Button btn_alarm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,11 +50,19 @@ public class MainActivity extends AppCompatActivity {
 
         txt_misafirdurum = findViewById(R.id.txt_misafirdurum);
         btn_open = findViewById(R.id.btn_opendoor);
+        btn_alarm = findViewById(R.id.btn_soundalarm);
 
         btn_open.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 publishMessage("201");
+            }
+        });
+
+        btn_alarm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                publishMessage("301");
             }
         });
 
