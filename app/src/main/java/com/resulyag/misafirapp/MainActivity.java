@@ -6,22 +6,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.resulyag.misafirapp.mqtt.MqttListener;
+import com.resulyag.misafirapp.mqtt.MqttManager;
 
-import org.eclipse.paho.android.service.MqttAndroidClient;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
+import pl.droidsonroids.gif.GifImageView;
 
 import static com.resulyag.misafirapp.notification.MyFirebaseMessagingService.sendRegistrationToServer;
 
@@ -29,99 +26,51 @@ public class MainActivity extends AppCompatActivity {
 
     private final String TAG = "MP_MainActivity";
 
-    final private String PUB_TOPIC = "esp-r";
-    final private String SUB_TOPIC = "esp-s";
-
-    final String host = "tcp://143.198.71.210:1883";
-    private String clientId;
-    private String userName;
-    private String passWord;
-
-    MqttAndroidClient mqttAndroidClient;
+    MqttManager mqttManager;
 
     private TextView txt_misafirdurum;
+    private TextView txt_kapidurum;
+    private TextView txt_alarmdurum;
     private Button btn_open;
     private Button btn_alarm;
+    private ImageView imgVw_connState;
+    private GifImageView gif_image_zil;
+    private AlphaAnimation txtAnimation;
+    private void init(){
+        txt_misafirdurum = findViewById(R.id.txt_misafirdurum);
+        txt_kapidurum = findViewById(R.id.txt_kapidurum);
+        txt_alarmdurum = findViewById(R.id.txt_alarmdurum);
+        btn_open = findViewById(R.id.btn_opendoor);
+        btn_alarm = findViewById(R.id.btn_soundalarm);
+        imgVw_connState = findViewById(R.id.imgVw_connState);
+        gif_image_zil = findViewById(R.id.gif_zil);
+        initAnimation();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        txt_misafirdurum = findViewById(R.id.txt_misafirdurum);
-        btn_open = findViewById(R.id.btn_opendoor);
-        btn_alarm = findViewById(R.id.btn_soundalarm);
+        init();
 
         btn_open.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                publishMessage("201");
+                mqttManager.publishMessage("201");
             }
         });
 
         btn_alarm.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                publishMessage("301");
+                mqttManager.publishMessage("301");
             }
         });
 
         runtimeEnableAutoInit();
 
-        clientId = "mobil";
-        userName = "kekstra";
-        passWord = "Resul81Yag";
-
-        MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setUserName(userName);
-        mqttConnectOptions.setPassword(passWord.toCharArray());
-
-        mqttAndroidClient = new MqttAndroidClient(getApplicationContext(), host, clientId);
-        mqttAndroidClient.setCallback(new MqttCallback() {
-            @Override
-            public void connectionLost(Throwable cause) {
-                Log.i(TAG, "connection lost");
-            }
-
-            @Override
-            public void messageArrived(String topic, MqttMessage message) throws Exception {
-
-                String receivedMsg =  new String(message.getPayload());
-
-                Log.i(TAG, "topic: " + topic + ", msg: " + receivedMsg);
-
-                if (receivedMsg.equals("101")){ //misafir geldi
-                    txt_misafirdurum.setText("Misafir Geldi");
-                } else if (receivedMsg.equals("102")){
-                    txt_misafirdurum.setText("Kapı Açıldı");
-                }
-            }
-
-            @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-                Log.i(TAG, "msg delivered");
-            }
-        });
-
-
-        try {
-            mqttAndroidClient.connect(mqttConnectOptions, null, new IMqttActionListener() {
-                @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
-                    Log.i(TAG, "connect succeed");
-
-                    subscribeTopic(SUB_TOPIC);
-                }
-
-                @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.i(TAG, "connect failed");
-                }
-            });
-
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
+        initMqtt();
 
         /*
         Button pubButton = findViewById(R.id.publish);
@@ -132,56 +81,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         */
-    }
-
-    public void subscribeTopic(String topic) {
-        try {
-            mqttAndroidClient.subscribe(topic, 0, null, new IMqttActionListener() {
-                @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
-                    Log.i(TAG, "subscribed succeed");
-                }
-
-                @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.i(TAG, "subscribed failed");
-                }
-            });
-
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * 向默认的主题/user/update发布消息
-     *
-     * @param payload 消息载荷
-     */
-    public void publishMessage(String payload) {
-        try {
-            if (mqttAndroidClient.isConnected() == false) {
-                mqttAndroidClient.connect();
-            }
-
-            MqttMessage message = new MqttMessage();
-            message.setPayload(payload.getBytes());
-            message.setQos(0);
-            mqttAndroidClient.publish(PUB_TOPIC, message, null, new IMqttActionListener() {
-                @Override
-                public void onSuccess(IMqttToken asyncActionToken) {
-                    Log.i(TAG, "publish succeed!");
-                }
-
-                @Override
-                public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    Log.i(TAG, "publish failed!");
-                }
-            });
-        } catch (MqttException e) {
-            Log.e(TAG, e.toString());
-            e.printStackTrace();
-        }
     }
 
     public void runtimeEnableAutoInit() {
@@ -210,6 +109,90 @@ public class MainActivity extends AppCompatActivity {
                         //Toast.makeText(MainActivity.this, msg, Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private boolean ignoreThis = true;
+    private void initMqtt(){
+
+        MqttListener listener = new MqttListener() {
+            @Override
+            public void onMessage(String msg) {
+                if (ignoreThis){
+                    ignoreThis = false;
+                    return;
+                }
+
+                if (msg.equals("101")){ //misafir geldi
+
+                    txt_misafirdurum.setText("Misafir Geldi!");
+                    txt_misafirdurum.setAlpha(1f);
+                    txt_misafirdurum.startAnimation(txtAnimation);
+
+                    txt_kapidurum.setText("Kapı Kapalı");
+                    txt_kapidurum.clearAnimation();
+
+                    txt_alarmdurum.setVisibility(View.INVISIBLE);
+                    txt_alarmdurum.clearAnimation();
+                    gif_image_zil.setVisibility(View.INVISIBLE);
+                } else if (msg.equals("202")){   // kapı aç komutuna karşın kapı açıldı mesajı geldiğinde
+                    txt_misafirdurum.setText("Misafir Yok!");
+                    txt_misafirdurum.clearAnimation();
+
+                    txt_kapidurum.setText("Kapı Açıldı!");
+                    txt_kapidurum.setAlpha(1f);
+                    txt_kapidurum.startAnimation(txtAnimation);
+
+                    txt_alarmdurum.setVisibility(View.INVISIBLE);
+                    txt_alarmdurum.clearAnimation();
+                    gif_image_zil.setVisibility(View.INVISIBLE);
+                                    }
+                else if(msg.equals("302")){  // alarm çal komutuna karşılık olarak alarm çalıyor mesajı geldiğinde
+                    txt_misafirdurum.setText("Misafir Yok!");
+                    txt_misafirdurum.clearAnimation();
+
+                    txt_kapidurum.setText("Kapı Kapalı");
+                    txt_kapidurum.clearAnimation();
+
+                    txt_alarmdurum.setVisibility(View.VISIBLE);
+                    txt_alarmdurum.setAlpha(1f);
+                    txt_alarmdurum.startAnimation(txtAnimation);
+
+                    gif_image_zil.setVisibility(View.VISIBLE);
+
+                }
+                else if(msg.equals("102")){ // açılan animasyonların  durması için genel bir mesaj, açık olan animasyon durması için 10 saniye sonra arduino tarafından gönderilecek
+                    txt_misafirdurum.setText("Misafir Yok!");
+                    txt_misafirdurum.clearAnimation();
+
+                    txt_kapidurum.setText("Kapı Kapalı");
+                    txt_kapidurum.clearAnimation();
+
+                    txt_alarmdurum.setVisibility(View.INVISIBLE);
+                    txt_alarmdurum.clearAnimation();
+                    gif_image_zil.setVisibility(View.INVISIBLE);
+                    mqttManager.publishMessage("103");
+                }
+            }
+
+            @Override
+            public void connState(boolean isConnected) {
+                if (isConnected){
+                    imgVw_connState.setImageResource(R.drawable.mqttconn);
+                } else {
+                    imgVw_connState.setImageResource(R.drawable.connlost);
+                }
+            }
+        };
+
+        mqttManager = new MqttManager(getApplicationContext(), listener);
+
+    }
+
+    private void initAnimation(){
+        txtAnimation = new AlphaAnimation(0.2f, 1.0f);
+        txtAnimation.setDuration(700);
+        txtAnimation.setRepeatCount(Animation.INFINITE);
+        txtAnimation.setRepeatMode(Animation.REVERSE);
     }
 
 }
